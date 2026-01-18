@@ -20,8 +20,10 @@ dotnet build
 dotnet run
 ```
 ## Run Tests:
+```bash
 cd QuizApp.Tests
 dotnet test
+```
 
 Frontend
 Check out the React frontend: Quiz App Frontend
