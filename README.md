@@ -19,11 +19,14 @@ dotnet restore
 dotnet build
 dotnet run
 
-Run tests:
+## Run Tests:
 cd QuizApp.Tests
 dotnet test
 
 Frontend
-
 Check out the React frontend: Quiz App Frontend
 https://github.com/GamDev/quiz-app-frontend
+
+Coming Soon
+
+More features
