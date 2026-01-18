@@ -25,7 +25,7 @@ cd QuizApp.Tests
 dotnet test
 ```
 
-Frontend
+## Frontend
 Check out the React frontend: Quiz App Frontend
 https://github.com/GamDev/quiz-app-frontend
 
