@@ -18,7 +18,7 @@ cd QuizApp.Backend
 dotnet restore
 dotnet build
 dotnet run
-
+```
 ## Run Tests:
 cd QuizApp.Tests
 dotnet test
