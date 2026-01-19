@@ -2,7 +2,7 @@ namespace com.QuizAppBackend.Extensions
 {
     public static class CoreExtensions
     {
-        public static IServiceCollection AddCors(IServiceCollection services)
+        public static IServiceCollection SetupCors(this IServiceCollection services)
         {
             services.AddCors(options =>
        {

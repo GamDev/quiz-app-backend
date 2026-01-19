@@ -32,7 +32,15 @@ namespace com.QuizAppBackend.Repositories
 
         public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            return _dbContext.SaveChangesAsync(cancellationToken); 
+            return _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        public async Task<IReadOnlyList<RefreshToken>> GetExpiredTokensByUserIdAsync(int userId,
+                                                                                     CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.RefreshTokens
+                         .Where(rt => rt.UserId == userId &&
+                         (rt.Revoked != null || rt.Expires <= DateTime.UtcNow))
+                         .ToListAsync(cancellationToken);
         }
     }
 }

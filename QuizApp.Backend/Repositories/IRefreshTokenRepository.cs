@@ -13,7 +13,7 @@ namespace com.QuizAppBackend.Repositories
         public void Add(RefreshToken refreshToken);
         public void Remove(RefreshToken refreshToken);
          Task SaveChangesAsync(CancellationToken cancellationToken = default); 
-
+         Task<IReadOnlyList<RefreshToken>> GetExpiredTokensByUserIdAsync(int userId, CancellationToken cancellationToken = default);
     }
 
 }

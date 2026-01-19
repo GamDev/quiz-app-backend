@@ -68,7 +68,9 @@ namespace com.QuizAppBackend.Services
                 return AuthResult.Failure("Email already taken");
             }
 
-            var user = new User { Email = registerRequest.Email };
+            var user = new User { FullName = registerRequest.FullName,  
+                                  Email = registerRequest.Email,
+                                  CreatedAt = DateTime.UtcNow};
             user.PasswordHash = _passwordHasher.HashPassword(user, registerRequest.Password);
 
             await _userService.CreateUser(user, cancellationToken);

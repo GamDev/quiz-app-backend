@@ -23,8 +23,9 @@ namespace com.QuizAppBackend.Services
             cancellationToken.ThrowIfCancellationRequested();
 
             var newToken = _tokenService.GenerateRefreshToken();
+            newToken.UserId = user.Id;
             _refreshTokenRepository.Add(newToken);
-
+            
             await RemoveExpiredTokensAsync(user, cancellationToken, commit: false);
 
             await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
@@ -69,14 +70,15 @@ namespace com.QuizAppBackend.Services
                                                         CancellationToken cancellationToken = default,
                                                         bool commit = true)
         {
-            cancellationToken.ThrowIfCancellationRequested(); 
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var expiredTokens = user.RefreshTokens.Where(rt => !rt.IsActive).ToList();
+            var expiredTokens =
+              await _refreshTokenRepository.GetExpiredTokensByUserIdAsync(user.Id, cancellationToken);
             if (!expiredTokens.Any()) return 0;
 
             foreach (var token in expiredTokens)
             {
-                cancellationToken.ThrowIfCancellationRequested(); 
+                cancellationToken.ThrowIfCancellationRequested();
                 _refreshTokenRepository.Remove(token);
             }
 
@@ -96,7 +98,7 @@ namespace com.QuizAppBackend.Services
         public async Task<RefreshToken?> GetRefreshTokenWithUserAsync(string token,
                                                                       CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested(); 
+            cancellationToken.ThrowIfCancellationRequested();
 
             return await _refreshTokenRepository.GetByTokenWithUserAsync(token, cancellationToken);
         }
