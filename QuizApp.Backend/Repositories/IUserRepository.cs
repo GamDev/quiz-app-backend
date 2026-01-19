@@ -1,6 +1,6 @@
-using com.QuizAppBackend.Models;
+using QuizApp.Backend.Models;
 
-namespace com.QuizAppBackend.Repositories
+namespace QuizApp.Backend.Repositories
 {
     public interface IUserRepository
     {

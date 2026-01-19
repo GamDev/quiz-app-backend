@@ -1,8 +1,8 @@
-using com.QuizAppBackend.Interfaces;
-using com.QuizAppBackend.Models;
-using com.QuizAppBackend.Repositories;
+using QuizApp.Backend.Interfaces;
+using QuizApp.Backend.Models;
+using QuizApp.Backend.Repositories;
 
-namespace com.QuizAppBackend.Services
+namespace QuizApp.Backend.Services
 {
     public class RefreshTokenService : IRefreshTokenService
     {
@@ -25,7 +25,7 @@ namespace com.QuizAppBackend.Services
             var newToken = _tokenService.GenerateRefreshToken();
             newToken.UserId = user.Id;
             _refreshTokenRepository.Add(newToken);
-            
+
             await RemoveExpiredTokensAsync(user, cancellationToken, commit: false);
 
             await _refreshTokenRepository.SaveChangesAsync(cancellationToken);

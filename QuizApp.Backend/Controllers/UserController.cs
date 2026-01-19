@@ -1,11 +1,11 @@
-using com.QuizAppBackend.Dtos;
-using com.QuizAppBackend.Interfaces;
-using com.QuizAppBackend.Models;
+using QuizApp.Backend.Dtos;
+using QuizApp.Backend.Interfaces;
+using QuizApp.Backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 
-namespace com.QuizAppBackend.Controllers
+namespace QuizApp.Backend.Controllers
 {
 
     [ApiController]

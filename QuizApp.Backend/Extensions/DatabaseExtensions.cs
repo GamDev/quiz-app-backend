@@ -1,7 +1,7 @@
-using com.QuizAppBackend.Data;
+using QuizApp.Backend.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace com.QuizAppBackend.Extensions
+namespace QuizApp.Backend.Extensions
 {
     public static class DataBaseExtension
     {

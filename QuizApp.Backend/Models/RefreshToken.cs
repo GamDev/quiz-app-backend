@@ -1,4 +1,4 @@
-namespace com.QuizAppBackend.Models
+namespace QuizApp.Backend.Models
 {
     public class RefreshToken
     {

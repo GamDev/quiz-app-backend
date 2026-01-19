@@ -1,8 +1,8 @@
-using com.QuizAppBackend.Data;
-using com.QuizAppBackend.Models;
+using QuizApp.Backend.Data;
+using QuizApp.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace com.QuizAppBackend.Repositories
+namespace QuizApp.Backend.Repositories
 {
     public class RefreshTokenRepository : IRefreshTokenRepository
     {

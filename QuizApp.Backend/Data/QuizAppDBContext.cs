@@ -1,7 +1,7 @@
-using com.QuizAppBackend.Models;
+using QuizApp.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace com.QuizAppBackend.Data
+namespace QuizApp.Backend.Data
 {
     public class QuizAppDBContext : DbContext
     {

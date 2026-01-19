@@ -1,9 +1,9 @@
 
-using com.QuizAppBackend.Models;
+using QuizApp.Backend.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace com.QuizAppBackend.Repositories
+namespace QuizApp.Backend.Repositories
 {
 
     public interface IRefreshTokenRepository

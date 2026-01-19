@@ -1,6 +1,6 @@
 
 
-namespace com.QuizAppBackend.Dtos
+namespace QuizApp.Backend.Dtos
 {
     public record RevokeTokenRequest(string Token);
 

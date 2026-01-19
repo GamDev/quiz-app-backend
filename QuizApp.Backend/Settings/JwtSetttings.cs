@@ -1,4 +1,4 @@
-namespace com.QuizAppBackend.Settings
+namespace QuizApp.Backend.Settings
 {
     public class JwtSettings
     {

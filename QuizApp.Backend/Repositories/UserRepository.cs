@@ -1,13 +1,13 @@
 
 
-using com.QuizAppBackend.Data;
-using com.QuizAppBackend.Models;
+using QuizApp.Backend.Data;
+using QuizApp.Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-namespace com.QuizAppBackend.Repositories
+namespace QuizApp.Backend.Repositories
 {
     public class UserRepository : IUserRepository
     {

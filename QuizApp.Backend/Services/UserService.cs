@@ -1,11 +1,11 @@
 
-using com.QuizAppBackend.Dtos;
-using com.QuizAppBackend.Interfaces;
-using com.QuizAppBackend.Models;
-using com.QuizAppBackend.Repositories;
+using QuizApp.Backend.Dtos;
+using QuizApp.Backend.Interfaces;
+using QuizApp.Backend.Models;
+using QuizApp.Backend.Repositories;
 
 
-namespace com.QuizAppBackend.Services
+namespace QuizApp.Backend.Services
 {
 
     public class UserService : IUserService

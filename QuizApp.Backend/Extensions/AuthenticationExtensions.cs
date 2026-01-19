@@ -1,10 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using com.QuizAppBackend.Settings;
+using QuizApp.Backend.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
-namespace com.QuizAppBackend.Extensions
+namespace QuizApp.Backend.Extensions
 {
 
     public static class AuthenticationExtensions

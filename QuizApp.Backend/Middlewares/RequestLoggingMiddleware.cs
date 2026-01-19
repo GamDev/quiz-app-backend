@@ -1,4 +1,4 @@
-namespace com.QuizAppBackend.Middlewares
+namespace QuizApp.Backend.Middlewares
 {
     public class RequestLoggingMiddleware
     {

@@ -1,6 +1,6 @@
-using com.QuizAppBackend.Models;
+using QuizApp.Backend.Models;
 
-namespace com.QuizAppBackend.Interfaces
+namespace QuizApp.Backend.Interfaces
 {
     public interface IRefreshTokenService
     {

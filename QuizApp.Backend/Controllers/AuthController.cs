@@ -1,12 +1,12 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using com.QuizAppBackend.Dtos;
-using com.QuizAppBackend.Interfaces;
+using QuizApp.Backend.Dtos;
+using QuizApp.Backend.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace com.QuizAppBackend.Controllers
+namespace QuizApp.Backend.Controllers
 {
     [ApiController]
     [Route("api/auth")]

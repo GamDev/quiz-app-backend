@@ -1,4 +1,4 @@
-namespace com.QuizAppBackend.Dtos
+namespace QuizApp.Backend.Dtos
 {
     public record ApiResponse<T>(bool Success, T? Data = default, string? message = null);
 

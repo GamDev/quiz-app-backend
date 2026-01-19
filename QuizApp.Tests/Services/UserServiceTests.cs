@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using com.QuizAppBackend.Models;
-using com.QuizAppBackend.Repositories;
-using com.QuizAppBackend.Services;
+using QuizApp.Backend.Models;
+using QuizApp.Backend.Repositories;
+using QuizApp.Backend.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 

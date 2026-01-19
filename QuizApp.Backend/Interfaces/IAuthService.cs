@@ -1,6 +1,6 @@
-using com.QuizAppBackend.Dtos;
+using QuizApp.Backend.Dtos;
 
-namespace com.QuizAppBackend.Interfaces
+namespace QuizApp.Backend.Interfaces
 {
     public interface IAuthService
     {

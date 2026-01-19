@@ -2,13 +2,13 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using com.QuizAppBackend.Interfaces;
-using com.QuizAppBackend.Models;
-using com.QuizAppBackend.Settings;
+using QuizApp.Backend.Interfaces;
+using QuizApp.Backend.Models;
+using QuizApp.Backend.Settings;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace com.QuizAppBackend.Services
+namespace QuizApp.Backend.Services
 {
     public class TokenService : ITokenService
     {

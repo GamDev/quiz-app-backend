@@ -1,10 +1,10 @@
-using com.QuizAppBackend.Interfaces;
-using com.QuizAppBackend.Models;
-using com.QuizAppBackend.Repositories;
-using com.QuizAppBackend.Services;
+using QuizApp.Backend.Interfaces;
+using QuizApp.Backend.Models;
+using QuizApp.Backend.Repositories;
+using QuizApp.Backend.Services;
 using Microsoft.AspNetCore.Identity;
 
-namespace com.QuizAppBackend.Extensions
+namespace QuizApp.Backend.Extensions
 {
     public static class ServiceExtensions
     {

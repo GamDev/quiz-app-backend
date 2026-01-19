@@ -1,4 +1,4 @@
-namespace com.QuizAppBackend.Extensions;
+namespace QuizApp.Backend.Extensions;
 
 public static class ApplicationBuilderExtensions
 {

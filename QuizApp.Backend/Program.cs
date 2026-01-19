@@ -1,6 +1,6 @@
 
 
-using com.QuizAppBackend.Extensions;
+using QuizApp.Backend.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
