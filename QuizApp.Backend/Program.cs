@@ -11,5 +11,6 @@ builder.Services.SetupCors();
 builder.Services.AddSwaggerDocumentation();
 builder.Services.AddControllers();
 var app = builder.Build();
+await app.Services.SeedAdminUserAsync();
 app.ConfigureMiddleware();
 app.Run();

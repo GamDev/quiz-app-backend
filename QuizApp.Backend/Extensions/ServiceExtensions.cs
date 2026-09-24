@@ -1,8 +1,8 @@
-using QuizApp.Backend.Interfaces;
-using QuizApp.Backend.Models;
-using QuizApp.Backend.Repositories;
-using QuizApp.Backend.Services;
+
 using Microsoft.AspNetCore.Identity;
+using QuizApp.Backend.Auth;
+using QuizApp.Backend.Tokens;
+using QuizApp.Backend.Users;
 
 namespace QuizApp.Backend.Extensions
 {

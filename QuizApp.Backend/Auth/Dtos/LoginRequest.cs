@@ -1,0 +1,4 @@
+namespace QuizApp.Backend.Auth.Dtos
+{
+    public record LoginRequest(string Email, string Password);
+}

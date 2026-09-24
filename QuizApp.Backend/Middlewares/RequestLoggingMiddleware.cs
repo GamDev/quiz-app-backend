@@ -5,9 +5,8 @@ namespace QuizApp.Backend.Middlewares
         private readonly RequestDelegate _next;
         private readonly ILogger<RequestLoggingMiddleware> _logger;
 
-        public RequestLoggingMiddleware(
-            RequestDelegate next,
-            ILogger<RequestLoggingMiddleware> logger)
+        public RequestLoggingMiddleware(RequestDelegate next,
+                                         ILogger<RequestLoggingMiddleware> logger)
         {
             _next = next;
             _logger = logger;
@@ -15,10 +14,9 @@ namespace QuizApp.Backend.Middlewares
 
         public async Task Invoke(HttpContext context)
         {
-            _logger.LogInformation(
-                "HTTP {Method} {Path} started",
-                context.Request.Method,
-                context.Request.Path);
+            _logger.LogInformation("HTTP {Method} {Path} started",
+                                   context.Request.Method,
+                                  context.Request.Path);
 
             await _next(context);
 

@@ -1,5 +1,7 @@
-using QuizApp.Backend.Models;
+
 using Microsoft.EntityFrameworkCore;
+using QuizApp.Backend.Tokens;
+using QuizApp.Backend.Users;
 
 namespace QuizApp.Backend.Data
 {
@@ -14,8 +16,8 @@ namespace QuizApp.Backend.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email)
-                .IsUnique();
+                        .HasIndex(u => u.Email)
+                        .IsUnique();
         }
     }
 }
