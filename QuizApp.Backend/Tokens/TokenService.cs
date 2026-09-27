@@ -9,62 +9,64 @@ using QuizApp.Backend.Users;
 
 namespace QuizApp.Backend.Tokens
 {
-    public class TokenService : ITokenService
+    /// <summary>
+    /// Provides services for generating JWT access tokens
+    /// and cryptographically secure refresh tokens.
+    /// </summary>
+    public sealed class TokenService : ITokenService
     {
-
         private readonly JwtSettings _jwtSettings;
         private readonly ILogger<TokenService> _logger;
-
-        public TokenService(IOptions<JwtSettings> jwtOptions, ILogger<TokenService> logger)
+        private const int SecondsPerMinute = 60;
+        public TokenService(IOptions<JwtSettings> jwtOptions,
+                            ILogger<TokenService> logger)
         {
             _jwtSettings = jwtOptions.Value;
             _logger = logger;
         }
-
-        public string GenerateAccessToken(User user, IEnumerable<Claim>? additionalClaims = null)
+        /// <summary>
+        /// Generates a signed JWT access token for the specified user.
+        /// </summary>
+        public string GenerateAccessToken(User user,
+                                         IEnumerable<Claim>? additionalClaims = null)
         {
-            try
-            {
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-                var claims = new List<Claim>
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
                  {
                     new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                     new Claim(JwtRegisteredClaimNames.Email, user.Email),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim("typ", "access"),
-                    new Claim(ClaimTypes.Role, user.Role.ToString()) 
+                    new Claim("token_type", "access"),
+                    new Claim(ClaimTypes.Role, user.Role.ToString())
                 };
 
-                if (additionalClaims != null)
-                    claims.AddRange(additionalClaims);
+            if (additionalClaims != null)
+                claims.AddRange(additionalClaims);
 
-                var token = new JwtSecurityToken(
-                    issuer: _jwtSettings.Issuer,
-                    audience: _jwtSettings.Audience,
-                    claims: claims,
-                    expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiresMinutes),
-                    signingCredentials: creds
-                );
+            var token = new JwtSecurityToken(
+                issuer: _jwtSettings.Issuer,
+                audience: _jwtSettings.Audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiresMinutes),
+                signingCredentials: credentials
+            );
 
-                var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
 
-                _logger.LogInformation(
-                    "Access token generated for user {UserId}, expires at {Expiry}",
-                    user.Id,
-                    token.ValidTo
-                );
+            _logger.LogInformation("Access token generated for user {UserId}, expires at {Expiry}",
+                                   user.Id,
+                                   token.ValidTo
+            );
 
-                return jwt;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to generate access token for user {UserId}", user.Id);
-                throw new InvalidOperationException("Could not generate JWT token", ex);
-            }
+            return jwt;
         }
 
+        /// <summary>
+        /// Generates a cryptographically secure refresh token.
+        /// </summary>
         public RefreshToken GenerateRefreshToken()
         {
             var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -75,14 +77,15 @@ namespace QuizApp.Backend.Tokens
                 Expires = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiresDays)
             };
 
-            _logger.LogInformation(
-                "Refresh token generated, expires at {Expiry}",
-                refreshToken.Expires
-            );
+            _logger.LogInformation("Refresh token generated, expires at {Expiry}",
+                               refreshToken.Expires);
 
             return refreshToken;
         }
 
-        public int AccessTokenExpiryInSeconds => _jwtSettings.AccessTokenExpiresMinutes * 60;
+        /// <summary>
+        /// Gets the configured access token lifetime in seconds.
+        /// </summary>
+        public int AccessTokenExpiryInSeconds => _jwtSettings.AccessTokenExpiresMinutes * SecondsPerMinute;
     }
 }

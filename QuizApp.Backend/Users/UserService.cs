@@ -3,7 +3,9 @@ using QuizApp.Backend.Users.Dtos;
 
 namespace QuizApp.Backend.Users
 {
-
+    /// <summary>
+    /// Provides application-level operations for managing users.
+    /// </summary>
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
@@ -15,27 +17,13 @@ namespace QuizApp.Backend.Users
             _logger = logger;
         }
 
-        public async Task<User?> CreateUser(User? user,
+        public async Task<User> CreateUser(User user,
                                             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (user == null || string.IsNullOrEmpty(user.Email))
-            {
-                _logger.LogWarning("Attempted to create invalid user");
-                return null;
-            }
-
-            try
-            {
-                var createdUser = await _userRepository.AddAsync(user, cancellationToken);
-                _logger.LogInformation("User created successfully: {UserId}", createdUser.Id);
-                return createdUser;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating user with email {Email}", user.Email);
-                throw;
-            }
+            var createdUser = await _userRepository.AddAsync(user, cancellationToken);
+            _logger.LogInformation("User created successfully: {UserId}", createdUser.Id);
+            return createdUser;
         }
 
         public async Task<User?> GetByEmailAsync(string email,
@@ -61,15 +49,14 @@ namespace QuizApp.Backend.Users
             var (users, totalCount) = await _userRepository.GetAllAsync(page, pageSize, cancellationToken);
 
             // Map EF entities to DTOs
-         var userResponses = users
-        .Select(u => new UserResponse(
-            u.Id,
-            u.FullName,
-            u.Email,
-            u.Role.ToString(),
-            u.CreatedAt.ToString("dd MMM yyyy hh:mm tt") // human-readable format
-        ))
-        .ToList();
+            var userResponses = users.Select(u => new UserResponse(
+               u.Id,
+               u.FullName,
+               u.Email,
+               u.Role.ToString(),
+               u.CreatedAt
+           ))
+           .ToList();
 
             return (userResponses, totalCount);
         }

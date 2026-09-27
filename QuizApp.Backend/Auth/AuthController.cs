@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuizApp.Backend.Auth.Dtos;
 using QuizApp.Backend.Common;
+using QuizApp.Backend.Tokens;
 using QuizApp.Backend.Tokens.Dtos;
 
 namespace QuizApp.Backend.Auth
@@ -13,9 +14,12 @@ namespace QuizApp.Backend.Auth
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-        public AuthController(IAuthService authService)
+        private readonly ITokenService _tokenService;
+        public AuthController(IAuthService authService,
+                              ITokenService tokenService)
         {
             _authService = authService;
+            _tokenService = tokenService;
         }
 
         [HttpPost("register")]
@@ -29,7 +33,7 @@ namespace QuizApp.Backend.Auth
 
             return Ok(new ApiResponse<AuthResponse>(
                 true,
-                new AuthResponse(result.AccessToken!, result.RefreshToken!, 3600)));
+                new AuthResponse(result.AccessToken!, result.RefreshToken!, _tokenService.AccessTokenExpiryInSeconds)));
         }
 
         [HttpPost("login")]
@@ -43,7 +47,7 @@ namespace QuizApp.Backend.Auth
 
             return Ok(new ApiResponse<AuthResponse>(
                 true,
-                new AuthResponse(result.AccessToken!, result.RefreshToken!, 3600)));
+                new AuthResponse(result.AccessToken!, result.RefreshToken!, _tokenService.AccessTokenExpiryInSeconds)));
         }
 
         [HttpPost("refresh")]
@@ -57,7 +61,7 @@ namespace QuizApp.Backend.Auth
 
             return Ok(new ApiResponse<AuthResponse>(
                 true,
-                new AuthResponse(result.AccessToken!, result.RefreshToken!, 3600)));
+                new AuthResponse(result.AccessToken!, result.RefreshToken!, _tokenService.AccessTokenExpiryInSeconds)));
         }
 
         [HttpPost("revoke")]
@@ -82,7 +86,7 @@ namespace QuizApp.Backend.Auth
             var email = User.FindFirstValue(ClaimTypes.Email)
                       ?? User.FindFirstValue(JwtRegisteredClaimNames.Email);
 
-            var role = User.FindFirstValue(ClaimTypes.Role) 
+            var role = User.FindFirstValue(ClaimTypes.Role)
                         ?? User.FindFirstValue("role");
 
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(email))
