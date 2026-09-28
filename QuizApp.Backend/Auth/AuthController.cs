@@ -13,13 +13,18 @@ namespace QuizApp.Backend.Auth
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
+        private const string RefreshTokenCookieName = "refreshToken";
+        private const string AuthCookiePath = "/api/auth";
         private readonly IAuthService _authService;
         private readonly ITokenService _tokenService;
+        private readonly IWebHostEnvironment _environment;
         public AuthController(IAuthService authService,
-                              ITokenService tokenService)
+                              ITokenService tokenService,
+                              IWebHostEnvironment environment)
         {
             _authService = authService;
             _tokenService = tokenService;
+            _environment = environment;
         }
 
         [HttpPost("register")]
@@ -31,9 +36,11 @@ namespace QuizApp.Backend.Auth
             if (!result.IsSuccess)
                 return BadRequest(new ApiResponse<object>(false, null, result.Error));
 
+            SetRefreshTokenCookie(result.RefreshToken!, result.RefreshTokenExpiresAt!.Value);
+
             return Ok(new ApiResponse<AuthResponse>(
                 true,
-                new AuthResponse(result.AccessToken!, result.RefreshToken!, _tokenService.AccessTokenExpiryInSeconds)));
+                new AuthResponse(result.AccessToken!, _tokenService.AccessTokenExpiryInSeconds)));
         }
 
         [HttpPost("login")]
@@ -45,35 +52,55 @@ namespace QuizApp.Backend.Auth
             if (!result.IsSuccess)
                 return Unauthorized(new ApiResponse<AuthResponse>(false, null, result.Error));
 
-            return Ok(new ApiResponse<AuthResponse>(
-                true,
-                new AuthResponse(result.AccessToken!, result.RefreshToken!, _tokenService.AccessTokenExpiryInSeconds)));
+            SetRefreshTokenCookie(result.RefreshToken!, result.RefreshTokenExpiresAt!.Value);
+
+            return Ok(new ApiResponse<AuthResponse>(true,
+                     new AuthResponse(result.AccessToken!,
+                      _tokenService.AccessTokenExpiryInSeconds)));
         }
 
         [HttpPost("refresh")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request,
-                                                       CancellationToken cancellationToken)
+        public async Task<IActionResult> RefreshToken(CancellationToken cancellationToken)
         {
-            var result = await _authService.RefreshTokenAsync(request.Token, cancellationToken);
+            var refreshToken = Request.Cookies[RefreshTokenCookieName];
+
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return Unauthorized(new ApiResponse<AuthResponse>(
+                        false, null, "Refresh token cookie is missing"));
+            }
+
+            var result = await _authService.RefreshTokenAsync(refreshToken, cancellationToken);
 
             if (result == null)
+            {
                 return Unauthorized(new ApiResponse<AuthResponse>(false, null, "Invalid or expired refresh token"));
+            }
 
-            return Ok(new ApiResponse<AuthResponse>(
-                true,
-                new AuthResponse(result.AccessToken!, result.RefreshToken!, _tokenService.AccessTokenExpiryInSeconds)));
+            SetRefreshTokenCookie(result.RefreshToken!, result.RefreshTokenExpiresAt!.Value);
+
+            return Ok(new ApiResponse<AuthResponse>(true,
+                      new AuthResponse(result.AccessToken!,
+                                        _tokenService.AccessTokenExpiryInSeconds)));
         }
 
         [HttpPost("revoke")]
-        public async Task<IActionResult> RevokeToken([FromBody] RevokeTokenRequest request,
-                                                     CancellationToken cancellationToken)
+        public async Task<IActionResult> RevokeToken(CancellationToken cancellationToken)
         {
-            var revoked = await _authService.RevokeTokenAsync(request.Token, cancellationToken);
+            var refreshToken = Request.Cookies[RefreshTokenCookieName];
+
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return Ok(new ApiResponse<object>(false, null, "Already logged out"));
+            }
+            var revoked = await _authService.RevokeTokenAsync(refreshToken, cancellationToken);
+
+            DeleteRefreshTokenCookie();
 
             if (!revoked)
-                return NotFound(new ApiResponse<RevokeTokenRequest>(false, null, "Token not found or already revoked"));
+                return Ok(new ApiResponse<object>(false, null, "Already logged out"));
 
-            return Ok(new ApiResponse<RevokeTokenRequest>(true, null, "Refresh token revoked successfully"));
+            return Ok(new ApiResponse<object>(true, null, "Refresh token revoked successfully"));
         }
 
         [Authorize]
@@ -94,5 +121,25 @@ namespace QuizApp.Backend.Auth
 
             return Ok(new ApiResponse<MeResponse>(true, new MeResponse(userId, email, role)));
         }
+        private void SetRefreshTokenCookie(string refreshToken, DateTime expiresAt)
+        {
+            Response.Cookies.Append(RefreshTokenCookieName, refreshToken,
+                            new CookieOptions
+                            {
+                                HttpOnly = true,
+                                Secure = !_environment.IsDevelopment(),
+                                SameSite = SameSiteMode.Strict,
+                                Path = AuthCookiePath,
+                                Expires = DateTime.SpecifyKind(expiresAt, DateTimeKind.Utc)
+                            });
+        }
+        private void DeleteRefreshTokenCookie()
+        {
+            Response.Cookies.Delete(RefreshTokenCookieName, new CookieOptions
+            {
+                Path = AuthCookiePath
+            });
+        }
+
     }
 }

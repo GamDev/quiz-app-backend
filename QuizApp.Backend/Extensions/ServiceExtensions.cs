@@ -1,6 +1,8 @@
 
 using Microsoft.AspNetCore.Identity;
 using QuizApp.Backend.Auth;
+using QuizApp.Backend.Common;
+using QuizApp.Backend.Data;
 using QuizApp.Backend.Quizzes;
 using QuizApp.Backend.Tokens;
 using QuizApp.Backend.Users;
@@ -21,6 +23,8 @@ namespace QuizApp.Backend.Extensions
             services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
             services.AddScoped<IQuizRepository,QuizRepository>();
             services.AddScoped<IQuizService,QuizService>();
+             services.AddScoped<ITransactionManager,TransactionManager>();
+         
             return services;
         }
     }

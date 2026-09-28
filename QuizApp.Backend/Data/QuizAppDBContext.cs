@@ -33,7 +33,7 @@ namespace QuizApp.Backend.Data
 
             modelBuilder.Entity<RefreshToken>()
                         .HasOne(refreshToken => refreshToken.User)
-                        .WithMany()
+                       .WithMany(user => user.RefreshTokens)
                         .HasForeignKey(refreshToken => refreshToken.UserId)
                         .OnDelete(DeleteBehavior.Cascade);
 

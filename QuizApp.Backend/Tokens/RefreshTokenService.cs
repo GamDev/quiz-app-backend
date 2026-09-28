@@ -1,5 +1,6 @@
 
 
+using QuizApp.Backend.Common;
 using QuizApp.Backend.Users;
 
 namespace QuizApp.Backend.Tokens
@@ -13,13 +14,16 @@ namespace QuizApp.Backend.Tokens
         private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly ITokenService _tokenService;
         private readonly ILogger<RefreshTokenService> _logger;
+        private ITransactionManager _transactionManager;
         public RefreshTokenService(IRefreshTokenRepository refreshTokenRepository,
                                    ITokenService tokenService,
-                                   ILogger<RefreshTokenService> logger)
+                                   ILogger<RefreshTokenService> logger,
+                                   ITransactionManager transactionManager)
         {
             _refreshTokenRepository = refreshTokenRepository;
             _tokenService = tokenService;
             _logger = logger;
+            _transactionManager  = transactionManager;
         }
 
         /// <summary>
@@ -50,36 +54,43 @@ namespace QuizApp.Backend.Tokens
         /// <summary>
         /// Revokes the specified refresh token and creates a replacement.
         /// </summary>
-        public async Task<RefreshToken> RotateAsync(RefreshToken refreshToken,
-                                                    CancellationToken cancellationToken = default)
+      public async Task<RefreshToken?> RotateAsync(RefreshToken refreshToken,
+                                             CancellationToken cancellationToken = default)
+{
+    cancellationToken.ThrowIfCancellationRequested();
+
+    var newToken = _tokenService.GenerateRefreshToken();
+    newToken.UserId = refreshToken.UserId;
+
+    await _transactionManager.BeginAsync(cancellationToken);
+    try
+    {
+        var claimed = await _refreshTokenRepository.TryRevokeAsync(
+            refreshToken.Id, newToken.Token, cancellationToken);
+
+        if (!claimed)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!refreshToken.IsActive)
-            {
-                throw new InvalidOperationException("Cannot rotate an inactive refresh token.");
-            }
-
-            refreshToken.Revoked = DateTime.UtcNow;
-
-            var newToken = _tokenService.GenerateRefreshToken();
-
-            newToken.UserId = refreshToken.UserId;
-
-            refreshToken.ReplacedByToken = newToken.Token;
-
-            _refreshTokenRepository.Add(newToken);
-
-            await RemoveInactiveTokensAsync(refreshToken.User, cancellationToken, commit: false);
-
-            await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Rotated refresh token for user {UserId}, new token expires at {Expiry}",
-                                    refreshToken.UserId,
-                                    newToken.Expires);
-
-            return newToken;
+            await _transactionManager.RollbackAsync(cancellationToken);
+            _logger.LogWarning("Refresh token {TokenId} was already used", refreshToken.Id);
+            return null;
         }
+
+        _refreshTokenRepository.Add(newToken);
+        await RemoveInactiveTokensAsync(refreshToken.User, cancellationToken, commit: false);
+        await _refreshTokenRepository.SaveChangesAsync(cancellationToken);
+
+        await _transactionManager.CommitAsync(cancellationToken);
+    }
+    catch
+    {
+        await _transactionManager.RollbackAsync(cancellationToken);
+        throw;
+    }
+
+    _logger.LogInformation("Rotated refresh token for user {UserId}, new token expires at {Expiry}",
+                           refreshToken.UserId, newToken.Expires);
+    return newToken;
+}
         /// <summary>
         /// Revokes a refresh token so it can no longer be used.
         /// </summary>
@@ -148,6 +159,17 @@ namespace QuizApp.Backend.Tokens
                                     user.Id);
 
             return inactiveTokens.Count;
+        }
+
+        /// <summary>
+        /// Revokes every active refresh token of a user (used when token theft is suspected).
+        /// </summary>
+        public async Task RevokeAllForUserAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var count = await _refreshTokenRepository.RevokeAllActiveForUserAsync(userId, cancellationToken);
+            _logger.LogWarning("Revoked {Count} active refresh tokens for user {UserId}", count, userId);
         }
     }
 }

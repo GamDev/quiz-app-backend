@@ -64,10 +64,35 @@ namespace QuizApp.Backend.Tokens
         public async Task<IReadOnlyList<RefreshToken>> GetInactiveTokensByUserIdAsync(int userId,
                                                                                      CancellationToken cancellationToken = default)
         {
+            var now = DateTime.UtcNow;
+            var cutoff = now.AddDays(-7); // keep revoked tokens for 7 days
+
             return await _dbContext.RefreshTokens
-                         .Where(rt => rt.UserId == userId &&
-                         (rt.Revoked != null || rt.Expires <= DateTime.UtcNow))
-                         .ToListAsync(cancellationToken);
+                .Where(rt => rt.UserId == userId &&
+                             (rt.Expires <= now ||
+                              (rt.Revoked != null && rt.Revoked < cutoff)))
+                .ToListAsync(cancellationToken);
+        }
+        public async Task<bool> TryRevokeAsync(int tokenId, string replacedByToken, CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+
+            var rows = await _dbContext.RefreshTokens
+                .Where(t => t.Id == tokenId && t.Revoked == null && t.Expires > now)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(t => t.Revoked, now)
+                    .SetProperty(t => t.ReplacedByToken, replacedByToken),
+                    cancellationToken);
+
+            return rows == 1;   // 0 means another request already used this token
+        }
+        public async Task<int> RevokeAllActiveForUserAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+
+            return await _dbContext.RefreshTokens
+                .Where(t => t.UserId == userId && t.Revoked == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.Revoked, now), cancellationToken);
         }
     }
 }

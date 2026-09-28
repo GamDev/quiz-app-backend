@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuizApp.Backend.Data;
@@ -11,9 +12,11 @@ using QuizApp.Backend.Data;
 namespace quizappbackend.Migrations
 {
     [DbContext(typeof(QuizAppDBContext))]
-    partial class QuizAppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20260927011916_FixRefreshTokenRelationship")]
+    partial class FixRefreshTokenRelationship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
