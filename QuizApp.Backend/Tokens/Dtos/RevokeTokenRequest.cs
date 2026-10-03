@@ -2,6 +2,6 @@
 
 namespace QuizApp.Backend.Tokens.Dtos
 {
-    public record RevokeTokenRequest(string Token);
+    public sealed record RevokeTokenRequest(string Token);
 
 }

@@ -28,7 +28,7 @@ namespace QuizApp.Backend.Data
                         .IsUnique();
 
             modelBuilder.Entity<RefreshToken>()
-                        .HasIndex(refreshToken => refreshToken.Token)
+                        .HasIndex(refreshToken => refreshToken.TokenHash)
                         .IsUnique();
 
             modelBuilder.Entity<RefreshToken>()

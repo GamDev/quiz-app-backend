@@ -25,6 +25,9 @@ namespace QuizApp.Backend.Users
             return user;
         }
 
+      public Task<bool> EmailExistsAsync(string normalizedEmail, CancellationToken cancellationToken = default) =>
+    _dbContext.Users.AnyAsync(u => u.Email == normalizedEmail, cancellationToken);
+
 
         /// <summary>
         /// Retrieves users using pagination.
@@ -34,8 +37,8 @@ namespace QuizApp.Backend.Users
                                                                                    CancellationToken cancellationToken = default)
         {
             // guard againt invalid pagination input
-            page = page < 1 ? 1: page;
-            pageSize = pageSize<1 ? 1 : pageSize;
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 1 : pageSize;
 
             var query = _dbContext.Users.AsNoTracking().Where(x => x.Role != UserRole.Admin);
 
@@ -43,6 +46,7 @@ namespace QuizApp.Backend.Users
 
             var items = await query
                 .Skip((page - 1) * pageSize)
+                .OrderBy(x => x.Id)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
@@ -53,22 +57,15 @@ namespace QuizApp.Backend.Users
         /// Retrieves a user by their email address.
         /// </summary>
 
-        public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
-        {
-            string normalizedEmail = email.Trim().ToLowerInvariant();
-            return await _dbContext.Users
-                .Include(u => u.RefreshTokens)
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
-        }
+        public Task<User?> GetByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default) =>
+                          _dbContext.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail, cancellationToken);
+
 
         /// <summary>
         /// Retrieves a user by their unique identifier.
         /// </summary>
-        public async Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-        {
-            return await _dbContext.Users
-                .Include(u => u.RefreshTokens)
-                .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
-        }
+        public Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
+                         _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
     }
 }

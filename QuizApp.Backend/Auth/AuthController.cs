@@ -6,6 +6,8 @@ using QuizApp.Backend.Auth.Dtos;
 using QuizApp.Backend.Common;
 using QuizApp.Backend.Tokens;
 using QuizApp.Backend.Tokens.Dtos;
+using QuizApp.Backend.Users;
+using QuizApp.Backend.Users.Dtos;
 
 namespace QuizApp.Backend.Auth
 {
@@ -18,13 +20,16 @@ namespace QuizApp.Backend.Auth
         private readonly IAuthService _authService;
         private readonly ITokenService _tokenService;
         private readonly IWebHostEnvironment _environment;
+        private readonly IUserService _userService;
         public AuthController(IAuthService authService,
                               ITokenService tokenService,
-                              IWebHostEnvironment environment)
+                              IWebHostEnvironment environment,
+                              IUserService userService)
         {
             _authService = authService;
             _tokenService = tokenService;
             _environment = environment;
+            _userService = userService;
         }
 
         [HttpPost("register")]
@@ -72,7 +77,7 @@ namespace QuizApp.Backend.Auth
 
             var result = await _authService.RefreshTokenAsync(refreshToken, cancellationToken);
 
-            if (result == null)
+            if (!result.IsSuccess)
             {
                 return Unauthorized(new ApiResponse<AuthResponse>(false, null, "Invalid or expired refresh token"));
             }
@@ -98,28 +103,27 @@ namespace QuizApp.Backend.Auth
             DeleteRefreshTokenCookie();
 
             if (!revoked)
-                return Ok(new ApiResponse<object>(false, null, "Already logged out"));
+                return Ok(new ApiResponse<object>(true, null, "Already logged out"));
 
             return Ok(new ApiResponse<object>(true, null, "Refresh token revoked successfully"));
         }
 
         [Authorize]
         [HttpGet("me")]
-        public IActionResult Me()
+        public async Task<IActionResult> Me(CancellationToken cancellationToken)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                      ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                           ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
-            var email = User.FindFirstValue(ClaimTypes.Email)
-                      ?? User.FindFirstValue(JwtRegisteredClaimNames.Email);
-
-            var role = User.FindFirstValue(ClaimTypes.Role)
-                        ?? User.FindFirstValue("role");
-
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(email))
+            if (!int.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new ApiResponse<object>(false, null, "Invalid token"));
 
-            return Ok(new ApiResponse<MeResponse>(true, new MeResponse(userId, email, role)));
+            var user = await _userService.GetUserByIdAsync(userId, cancellationToken);
+
+            if (user is null)
+                return Unauthorized(new ApiResponse<object>(false, null, "User not found"));
+
+            return Ok(new ApiResponse<UserResponse>(true, user));
         }
         private void SetRefreshTokenCookie(string refreshToken, DateTime expiresAt)
         {
@@ -137,6 +141,9 @@ namespace QuizApp.Backend.Auth
         {
             Response.Cookies.Delete(RefreshTokenCookieName, new CookieOptions
             {
+                HttpOnly = true,
+                Secure = !_environment.IsDevelopment(),
+                SameSite = SameSiteMode.Strict,
                 Path = AuthCookiePath
             });
         }

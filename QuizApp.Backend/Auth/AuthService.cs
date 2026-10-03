@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuizApp.Backend.Auth.Dtos;
 using QuizApp.Backend.Common;
 using QuizApp.Backend.Tokens;
+using QuizApp.Backend.Tokens.Dtos;
 using QuizApp.Backend.Users;
 
 namespace QuizApp.Backend.Auth
@@ -43,11 +44,9 @@ namespace QuizApp.Backend.Auth
         public async Task<AuthResult> AuthenticateAsync(LoginRequest loginRequest,
                                                         CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             _logger.LogInformation("Login attempt received");
 
-            var user = await _userService.GetByEmailAsync(loginRequest.Email, cancellationToken);
-
+            var user = await _userService.GetUserEntityByEmailAsync(loginRequest.Email, cancellationToken);
             if (user == null)
             {
                 // Perform password verification even when the user
@@ -70,7 +69,7 @@ namespace QuizApp.Backend.Auth
             var refreshToken = await _refreshTokenService.CreateAsync(user, cancellationToken);
 
             _logger.LogInformation("Login successful for user {UserId}", user.Id);
-            return AuthResult.Success(accessToken, refreshToken.Token, refreshToken.Expires);
+            return CreateSuccess(accessToken, refreshToken);
         }
 
         /// <summary>
@@ -79,21 +78,22 @@ namespace QuizApp.Backend.Auth
         public async Task<AuthResult> RegisterAsync(RegisterRequest registerRequest,
                                                     CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+
 
             _logger.LogInformation("Registration attempt recieved");
 
-            var existingUser = await _userService.GetByEmailAsync(registerRequest.Email, cancellationToken);
-            if (existingUser != null)
+            var email = EmailNormalizer.Normalize(registerRequest.Email);
+
+            if (await _userService.EmailExistsAsync(email, cancellationToken))
             {
-               _logger.LogWarning("Registration failed: email already taken");
+                _logger.LogWarning("Registration failed: email already taken");
                 return AuthResult.Failure("Email already taken");
             }
 
             var user = new User
             {
                 FullName = registerRequest.FullName,
-                Email = registerRequest.Email,
+                Email = email,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -104,7 +104,7 @@ namespace QuizApp.Backend.Auth
 
             try
             {
-                await _userService.CreateUser(user, cancellationToken);
+                await _userService.CreateUserAsync(user, cancellationToken);
 
                 var accessToken = _tokenService.GenerateAccessToken(user);
 
@@ -114,7 +114,7 @@ namespace QuizApp.Backend.Auth
 
                 _logger.LogInformation("User registered successfully: {UserId}", user.Id);
 
-                return AuthResult.Success(accessToken, refreshToken.Token, refreshToken.Expires);
+                return CreateSuccess(accessToken, refreshToken);
             }
             catch (DbUpdateException)
             {
@@ -139,18 +139,17 @@ namespace QuizApp.Backend.Auth
         public async Task<AuthResult?> RefreshTokenAsync(string token,
                                                      CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
 
             var refreshToken = await _refreshTokenService.GetRefreshTokenWithUserAsync(token, cancellationToken);
 
             if (refreshToken == null)
             {
                 _logger.LogWarning("Unknown refresh token used");
-                return null;
+               return AuthResult.Failure("Invalid or expired refresh token"); 
             }
 
             // Token was already replaced by a newer one: someone is reusing an old token.
-            if (refreshToken.Revoked != null && refreshToken.ReplacedByToken != null)
+            if (refreshToken.Revoked != null && refreshToken.ReplacedByTokenHash != null)
             {
                 // Grace period: two tabs can refresh at almost the same time.
                 var justRotated = refreshToken.Revoked > DateTime.UtcNow.AddSeconds(-10);
@@ -162,13 +161,13 @@ namespace QuizApp.Backend.Auth
                     await _refreshTokenService.RevokeAllForUserAsync(refreshToken.UserId, cancellationToken);
                 }
 
-                return null;
+                return AuthResult.Failure("Invalid or expired refresh token"); 
             }
 
             if (!refreshToken.IsActive)
             {
                 _logger.LogWarning("Invalid or expired refresh token used");
-                return null;
+              return AuthResult.Failure("Invalid or expired refresh token"); 
             }
 
             var newRefreshToken = await _refreshTokenService.RotateAsync(refreshToken, cancellationToken);
@@ -176,13 +175,13 @@ namespace QuizApp.Backend.Auth
             if (newRefreshToken == null)
             {
                 _logger.LogWarning("Refresh token was already used by a concurrent request");
-                return null;
+               return AuthResult.Failure("Invalid or expired refresh token"); 
             }
 
             var accessToken = _tokenService.GenerateAccessToken(refreshToken.User);
 
             _logger.LogInformation("Refresh token rotated successfully for user {UserId}", refreshToken.UserId);
-            return AuthResult.Success(accessToken, newRefreshToken.Token, newRefreshToken.Expires);
+            return CreateSuccess(accessToken, newRefreshToken);
         }
 
 
@@ -200,6 +199,10 @@ namespace QuizApp.Backend.Auth
             else
                 _logger.LogWarning("Attempted to revoke invalid or inactive token");
             return success;
+        }
+        private static AuthResult CreateSuccess(string accessToken, IssuedRefreshToken issued)
+        {
+            return AuthResult.Success(accessToken, issued.RawToken, issued.Entity.Expires);
         }
     }
 }

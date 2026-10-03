@@ -27,7 +27,7 @@ namespace QuizApp.Backend.Extensions
                 PasswordHash = passwordHasher.HashPassword(null, "test101")
             };
 
-            await userService.CreateUser(admin);
+            await userService.CreateUserAsync(admin);
         }
     }
 

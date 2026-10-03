@@ -1,3 +1,4 @@
+using QuizApp.Backend.Common;
 using QuizApp.Backend.Users.Dtos;
 
 namespace QuizApp.Backend.Users
@@ -105,5 +106,16 @@ namespace QuizApp.Backend.Users
                 user.Role.ToString(),
                 user.CreatedAt);
         }
+        /// <summary>
+        /// Retrieves the underlying <see cref="User"/> domain entity by email.
+        /// Used exclusively for internal service operations (e.g., Auth, Password Verification, JWT).
+        /// </summary>
+        public async Task<User?> GetUserEntityByEmailAsync(string email, CancellationToken cancellationToken = default)
+        {
+            return await _userRepository.GetByEmailAsync(EmailNormalizer.Normalize(email), cancellationToken);
+        }
+        public Task<bool> EmailExistsAsync(string email,
+                                           CancellationToken cancellationToken = default) =>
+                         _userRepository.EmailExistsAsync(EmailNormalizer.Normalize(email), cancellationToken);
     }
 }

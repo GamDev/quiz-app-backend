@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuizApp.Backend.Common;
@@ -23,13 +25,14 @@ namespace QuizApp.Backend.Users
         /// <summary>
         /// Retrieves a paginated list of non-admin users. Requires Admin role.
         /// </summary>
-        [HttpGet]
+        [HttpGet("getAllUsers")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetAllUsers(
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50,
-            CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetAllUsers([FromQuery] int page = 1,
+                                                      [FromQuery] int pageSize = 50,
+                                                      CancellationToken cancellationToken = default)
         {
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 1, 100);
             var (items, totalCount) = await _userService.GetAllAsync(page, pageSize, cancellationToken);
 
             var pagedResult = new PagedResult<UserResponse>(items, totalCount, page, pageSize);
@@ -41,17 +44,19 @@ namespace QuizApp.Backend.Users
         /// Retrieves a user by their unique identifier.
         /// </summary>
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetUserById(int id,
-                                                    CancellationToken cancellationToken)
+        public async Task<IActionResult> GetUserById(int id, CancellationToken cancellationToken)
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                             ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            // Users may read only their own profile; admins may read any.
+            if (!User.IsInRole("Admin") && currentUserId != id.ToString())
+                return Forbid();
+
             var user = await _userService.GetUserByIdAsync(id, cancellationToken);
-
-            if (user is null)
-            {
-                return NotFound(new ApiResponse<UserResponse>(false, message: "User not found"));
-            }
-
-            return Ok(new ApiResponse<UserResponse>(true, user));
+            return user is null
+                ? NotFound(new ApiResponse<UserResponse>(false, message: "User not found"))
+                : Ok(new ApiResponse<UserResponse>(true, user));
         }
     }
 }

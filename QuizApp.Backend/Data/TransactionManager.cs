@@ -30,9 +30,19 @@ namespace QuizApp.Backend.Data
         /// <param name="cancellationToken">
         /// Token used to cancel the asynchronous operation.
         /// </param>
-        public async Task BeginAsync( CancellationToken cancellationToken = default)
+        public async Task BeginAsync(CancellationToken cancellationToken = default)
         {
-            _transaction =  await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            if (_transaction == null) return;
+
+            try
+            {
+                await _transaction.CommitAsync(cancellationToken);
+            }
+            finally
+            {
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
         }
 
         /// <summary>
@@ -48,11 +58,19 @@ namespace QuizApp.Backend.Data
                 return;
             }
 
-            await _transaction.CommitAsync( cancellationToken);
+            await _transaction.CommitAsync(cancellationToken);
 
-            await _transaction.DisposeAsync();
+            try
+            {
+                await _transaction.CommitAsync(cancellationToken);
+            }
+            finally
+            {
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
 
-            _transaction = null;
+
         }
 
         /// <summary>
@@ -63,16 +81,17 @@ namespace QuizApp.Backend.Data
         /// </param>
         public async Task RollbackAsync(CancellationToken cancellationToken = default)
         {
-            if (_transaction == null)
+            if (_transaction == null) return;
+
+            try
             {
-                return;
+                await _transaction.RollbackAsync(cancellationToken);
             }
-
-            await _transaction.RollbackAsync( cancellationToken);
-
-            await _transaction.DisposeAsync();
-
-            _transaction = null;
+            finally
+            {
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
         }
     }
 }

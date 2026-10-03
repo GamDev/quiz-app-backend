@@ -17,20 +17,20 @@ namespace QuizApp.Backend.Tokens
         /// <summary>
         /// Retrieves a refresh token by its token value.
         /// </summary>
-        public async Task<RefreshToken?> GetByTokenAsync(string token, CancellationToken cancellationToken = default)
+        public async Task<RefreshToken?> GetByTokenHashAsync(string token, CancellationToken cancellationToken = default)
         {
             return await _dbContext.RefreshTokens
-                .SingleOrDefaultAsync(rt => rt.Token == token, cancellationToken);
+                .SingleOrDefaultAsync(rt => rt.TokenHash == token, cancellationToken);
         }
         /// <summary>
         /// Retrieves a refresh token by its token value,
         /// including the associated user.
         /// </summary>
-        public async Task<RefreshToken?> GetByTokenWithUserAsync(string token, CancellationToken cancellationToken = default)
+        public async Task<RefreshToken?> GetByTokenHashWithUserAsync(string token, CancellationToken cancellationToken = default)
         {
             return await _dbContext.RefreshTokens
                 .Include(rt => rt.User)
-                .SingleOrDefaultAsync(rt => rt.Token == token, cancellationToken);
+                .SingleOrDefaultAsync(rt => rt.TokenHash == token, cancellationToken);
         }
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace QuizApp.Backend.Tokens
                 .Where(t => t.Id == tokenId && t.Revoked == null && t.Expires > now)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(t => t.Revoked, now)
-                    .SetProperty(t => t.ReplacedByToken, replacedByToken),
+                    .SetProperty(t => t.ReplacedByTokenHash, replacedByToken),
                     cancellationToken);
 
             return rows == 1;   // 0 means another request already used this token
