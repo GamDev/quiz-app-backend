@@ -34,7 +34,7 @@ namespace QuizApp.Backend.Quizzes
               .AsNoTracking()
               .Include(quiz => quiz.Questions)
               .ThenInclude(question => question.Options)
-              .SingleOrDefaultAsync(
+              .FirstOrDefaultAsync(
                   quiz => quiz.Id == id,
                   cancellationToken);
         }
@@ -93,21 +93,19 @@ namespace QuizApp.Backend.Quizzes
         }
 
         /// <summary>
-        /// Deletes an existing quiz from the database.
+        /// Deletes a quiz by its unique identifier.
         /// </summary>
-        /// <param name="quiz">
-        /// The quiz entity to delete.
-        /// </param>
-        /// <param name="cancellationToken">
-        /// Token used to cancel the database operation.
-        /// </param>
-        public async Task DeleteAsync(Quiz quiz,
-                                      CancellationToken cancellationToken)
+        /// <param name="quizId">The unique identifier of the quiz to delete.</param>
+        /// <param name="cancellationToken">Token used to cancel the database operation.</param>
+        /// <returns><c>true</c> if a quiz was deleted; otherwise <c>false</c>.</returns>
+        public async Task<bool> DeleteAsync(int quizId, CancellationToken cancellationToken)
         {
-            _dbContext.Quizzes.Remove(quiz);
-           await _dbContext.SaveChangesAsync(cancellationToken);
-        }
+            var rows = await _dbContext.Quizzes
+                .Where(quiz => quiz.Id == quizId)
+                .ExecuteDeleteAsync(cancellationToken);
 
+            return rows > 0;
+        }
         /// <summary>
         /// Retrieves a quiz with its questions and options for modification.
         /// </summary>
@@ -117,17 +115,17 @@ namespace QuizApp.Backend.Quizzes
             return await _dbContext.Quizzes
                 .Include(quiz => quiz.Questions)
                 .ThenInclude(question => question.Options)
-                .SingleOrDefaultAsync(
+                .FirstOrDefaultAsync(
                     quiz => quiz.Id == id,
                     cancellationToken);
         }
 
-         /// <summary>
+        /// <summary>
         /// Persists changes made to tracked entities.
         /// </summary>
         public Task SaveChangesAsync(CancellationToken cancellationToken)
         {
-            return _dbContext.SaveChangesAsync( cancellationToken);
+            return _dbContext.SaveChangesAsync(cancellationToken);
         }
 
     }

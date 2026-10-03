@@ -33,6 +33,10 @@ namespace QuizApp.Backend.Users
                                                                                    int pageSize = 50,
                                                                                    CancellationToken cancellationToken = default)
         {
+            // guard againt invalid pagination input
+            page = page < 1 ? 1: page;
+            pageSize = pageSize<1 ? 1 : pageSize;
+
             var query = _dbContext.Users.AsNoTracking().Where(x => x.Role != UserRole.Admin);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -51,9 +55,10 @@ namespace QuizApp.Backend.Users
 
         public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
+            string normalizedEmail = email.Trim().ToLowerInvariant();
             return await _dbContext.Users
                 .Include(u => u.RefreshTokens)
-                .SingleOrDefaultAsync(u => u.Email == email, cancellationToken);
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
         }
 
         /// <summary>
@@ -63,7 +68,7 @@ namespace QuizApp.Backend.Users
         {
             return await _dbContext.Users
                 .Include(u => u.RefreshTokens)
-                .SingleOrDefaultAsync(u => u.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         }
     }
 }

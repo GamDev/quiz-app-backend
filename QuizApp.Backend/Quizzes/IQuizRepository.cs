@@ -14,6 +14,6 @@ namespace QuizApp.Backend.Quizzes
 
         Task SaveChangesAsync(CancellationToken cancellationToken);
 
-        Task DeleteAsync(Quiz quiz, CancellationToken cancellationToken);
+        Task<bool> DeleteAsync(int quizId, CancellationToken cancellationToken);
     }
 }

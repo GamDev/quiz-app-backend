@@ -108,9 +108,7 @@ namespace QuizApp.Backend.Quizzes
                                                      UpdateQuizRequest request,
                                                      CancellationToken cancellationToken)
         {
-            var quiz = await _quizRepository.GetByIdForUpdateAsync(
-                id,
-                cancellationToken);
+            var quiz = await _quizRepository.GetByIdForUpdateAsync(id, cancellationToken);
 
             if (quiz is null)
             {
@@ -120,74 +118,14 @@ namespace QuizApp.Backend.Quizzes
             quiz.Title = request.Title;
             quiz.Description = request.Description;
 
-            foreach (var questionRequest in request.Questions)
-            {
-                Question question;
-
-                if (questionRequest.Id is null)
-                {
-                    question = new Question
-                    {
-                        Text = questionRequest.Text
-                    };
-
-                    quiz.Questions.Add(question);
-                }
-                else
-                {
-                    question = quiz.Questions.Single(question =>
-                                              question.Id == questionRequest.Id.Value);
-
-                    question.Text = questionRequest.Text;
-                }
-
-                foreach (var optionRequest in questionRequest.Options)
-                {
-                    if (optionRequest.Id is null)
-                    {
-                        question.Options.Add(
-                            new QuestionOption
-                            {
-                                Text = optionRequest.Text,
-                                IsCorrect = optionRequest.IsCorrect
-                            });
-
-                        continue;
-                    }
-
-                    var option = question.Options.Single(option =>
-                                    option.Id == optionRequest.Id.Value);
-
-                    option.Text = optionRequest.Text;
-                    option.IsCorrect = optionRequest.IsCorrect;
-                }
-
-                var requestedOptionIds = questionRequest.Options
-                    .Where(option => option.Id.HasValue)
-                    .Select(option => option.Id.Value)
-                    .ToHashSet();
-
-                var optionsToRemove = question.Options
-                    .Where(option =>
-                        option.Id != 0 &&
-                        !requestedOptionIds.Contains(option.Id))
-                    .ToList();
-
-                foreach (var option in optionsToRemove)
-                {
-                    question.Options.Remove(option);
-                }
-            }
-
+            // 1. Remove questions not present in the update request
             var requestedQuestionIds = request.Questions
-                .Where(question => question.Id.HasValue)
-                .Select(question => question.Id.Value)
+                .Where(q => q.Id.HasValue && q.Id.Value != 0)
+                .Select(q => q.Id!.Value)
                 .ToHashSet();
 
             var questionsToRemove = quiz.Questions
-                .Where(question =>
-                    question.Id != 0 &&
-                    !requestedQuestionIds.Contains(question.Id))
+                .Where(q => q.Id != 0 && !requestedQuestionIds.Contains(q.Id))
                 .ToList();
 
             foreach (var question in questionsToRemove)
@@ -195,24 +133,84 @@ namespace QuizApp.Backend.Quizzes
                 quiz.Questions.Remove(question);
             }
 
+            // 2. Add or update questions
+            foreach (var questionRequest in request.Questions)
+            {
+                Question question;
+
+                if (questionRequest.Id is null || questionRequest.Id == 0)
+                {
+                    question = new Question { Text = questionRequest.Text };
+                    quiz.Questions.Add(question);
+                }
+                else
+                {
+                    var existingQuestion = quiz.Questions
+                        .FirstOrDefault(q => q.Id == questionRequest.Id.Value);
+
+                    if (existingQuestion is null)
+                    {
+                        // Safely skip or handle invalid question IDs sent by client
+                        continue;
+                    }
+
+                    question = existingQuestion;
+                    question.Text = questionRequest.Text;
+                }
+
+                // 3. Synchronize options for this question
+                var requestedOptionIds = questionRequest.Options
+                    .Where(o => o.Id.HasValue && o.Id.Value != 0)
+                    .Select(o => o.Id!.Value)
+                    .ToHashSet();
+
+                var optionsToRemove = question.Options
+                    .Where(o => o.Id != 0 && !requestedOptionIds.Contains(o.Id))
+                    .ToList();
+
+                foreach (var option in optionsToRemove)
+                {
+                    question.Options.Remove(option);
+                }
+
+                foreach (var optionRequest in questionRequest.Options)
+                {
+                    if (optionRequest.Id is null || optionRequest.Id == 0)
+                    {
+                        question.Options.Add(new QuestionOption
+                        {
+                            Text = optionRequest.Text,
+                            IsCorrect = optionRequest.IsCorrect
+                        });
+                    }
+                    else
+                    {
+                        var option = question.Options
+                            .FirstOrDefault(o => o.Id == optionRequest.Id.Value);
+
+                        if (option is null)
+                        {
+                            continue;
+                        }
+
+                        option.Text = optionRequest.Text;
+                        option.IsCorrect = optionRequest.IsCorrect;
+                    }
+                }
+            }
+
             await _quizRepository.SaveChangesAsync(cancellationToken);
 
             return MapToResponse(quiz);
         }
+
         /// <summary>
         /// Deletes a quiz by its unique identifier.
         /// </summary>
         public async Task DeleteAsync(int id,
                                       CancellationToken cancellationToken)
         {
-            var quiz = await _quizRepository.GetByIdAsync(id, cancellationToken);
-
-            if (quiz is null)
-            {
-                return;
-            }
-
-            await _quizRepository.DeleteAsync(quiz, cancellationToken);
+            await _quizRepository.DeleteAsync(id, cancellationToken);
         }
 
         /// <summary>
@@ -247,5 +245,6 @@ namespace QuizApp.Backend.Quizzes
                 quiz.CreatedAt,
                 questions);
         }
+
     }
 }

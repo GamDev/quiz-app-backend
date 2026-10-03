@@ -1,4 +1,3 @@
-
 using QuizApp.Backend.Users.Dtos;
 
 namespace QuizApp.Backend.Users
@@ -11,54 +10,100 @@ namespace QuizApp.Backend.Users
         private readonly IUserRepository _userRepository;
         private readonly ILogger<UserService> _logger;
 
-        public UserService(IUserRepository userRepository, ILogger<UserService> logger)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UserService"/> class.
+        /// </summary>
+        /// <param name="userRepository">Repository used to access user data.</param>
+        /// <param name="logger">Logger used to record user-related operations.</param>
+        public UserService(IUserRepository userRepository,
+                           ILogger<UserService> logger)
         {
             _userRepository = userRepository;
             _logger = logger;
         }
 
-        public async Task<User> CreateUser(User user,
-                                            CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Creates a new user and returns the corresponding response DTO.
+        /// </summary>
+        /// <param name="user">The user entity to create.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>The created user's response DTO.</returns>
+        public async Task<UserResponse> CreateUserAsync(User user,
+                                                        CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var createdUser = await _userRepository.AddAsync(user, cancellationToken);
-            _logger.LogInformation("User created successfully: {UserId}", createdUser.Id);
-            return createdUser;
+            var newUser = await _userRepository.AddAsync(user, cancellationToken);
+
+            _logger.LogInformation("User created successfully: {UserId}", newUser.Id);
+
+            return MapToResponse(newUser);
         }
 
-        public async Task<User?> GetByEmailAsync(string email,
-                                                 CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Retrieves a user by their email address.
+        /// </summary>
+        /// <param name="email">The user's email address.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>
+        /// The user's response DTO if found; otherwise, <see langword="null"/>.
+        /// </returns>
+        public async Task<UserResponse?> GetByEmailAsync(string email,
+                                                        CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            return await _userRepository.GetByEmailAsync(email, cancellationToken);
+            var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+
+            return user is null ? null : MapToResponse(user);
         }
 
-        public async Task<User?> GetUserByIdAsync(int userId,
-                                                  CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Retrieves a user by their unique identifier.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>
+        /// The user's response DTO if found; otherwise, <see langword="null"/>.
+        /// </returns>
+        public async Task<UserResponse?> GetUserByIdAsync(int userId,
+                                                          CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            return await _userRepository.GetByIdAsync(userId, cancellationToken);
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+
+            return user is null ? null : MapToResponse(user);
         }
 
-        public async Task<(IReadOnlyList<UserResponse> Items, int TotalCount)> GetUserAllAsync(int page = 1,
-                                                                      int pageSize = 50,
-                                                                      CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Retrieves a paginated list of users along with the total number of users.
+        /// </summary>
+        /// <param name="page">The page number, starting from 1.</param>
+        /// <param name="pageSize">The maximum number of users to return per page.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>
+        /// A tuple containing the paginated user response DTOs and the total user count.
+        /// </returns>
+        public async Task<(IReadOnlyList<UserResponse> Items, int TotalCount)> GetAllAsync(
+                                                                                int page = 1,
+                                                                                int pageSize = 50,
+                                                                                CancellationToken cancellationToken = default)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             var (users, totalCount) = await _userRepository.GetAllAsync(page, pageSize, cancellationToken);
 
-            // Map EF entities to DTOs
-            var userResponses = users.Select(u => new UserResponse(
-               u.Id,
-               u.FullName,
-               u.Email,
-               u.Role.ToString(),
-               u.CreatedAt
-           ))
-           .ToList();
+            var userResponses = users.Select(MapToResponse).ToList();
 
             return (userResponses, totalCount);
+        }
+
+        /// <summary>
+        /// Maps a <see cref="User"/> entity to a <see cref="UserResponse"/> DTO.
+        /// </summary>
+        /// <param name="user">The user entity to map.</param>
+        /// <returns>A response DTO containing the user's public information.</returns>
+        private static UserResponse MapToResponse(User user)
+        {
+            return new UserResponse(
+                user.Id,
+                user.FullName,
+                user.Email,
+                user.Role.ToString(),
+                user.CreatedAt);
         }
     }
 }

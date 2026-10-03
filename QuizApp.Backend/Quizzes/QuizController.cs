@@ -15,7 +15,7 @@ namespace QuizApp.Backend.Quizzes
     [Authorize]
     public sealed class QuizController : ControllerBase
     {
-        private IQuizService _quizService;
+        private readonly IQuizService _quizService;
         public QuizController(IQuizService quizService)
         {
             _quizService = quizService;
@@ -83,14 +83,19 @@ namespace QuizApp.Backend.Quizzes
         public async Task<IActionResult> Create([FromBody] CreateQuizRequest request,
                                                CancellationToken cancellationToken)
         {
-            var createdBy = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var quiz = await _quizService.CreateAsync(request, createdBy, cancellationToken);
+            if (!TryGetUserId(out int userId))
+            {
+                return Unauthorized(new ApiResponse<QuizResponse>(false, message: "Invalid or missing user Identity"));
+            }
+            var quiz = await _quizService.CreateAsync(request, userId, cancellationToken);
             // Your Quiz was successfully created, and here is the endpoint
             // where you can retrieve it.
             return CreatedAtAction(nameof(GetById),
-                                   new { id = quiz?.Id },
+                                   new { id = quiz.Id },
                                     new ApiResponse<QuizResponse>(true, quiz));
+
         }
+
 
 
         /// <summary>
@@ -141,8 +146,17 @@ namespace QuizApp.Backend.Quizzes
         public async Task<IActionResult> Delete(int id,
                                                 CancellationToken cancellationToken)
         {
-            await _quizService.DeleteAsync(id,  cancellationToken);
+            await _quizService.DeleteAsync(id, cancellationToken);
             return NoContent();
+        }
+
+        /// <summary>
+        /// Safely extracts the current authenticated user's ID from claims.
+        /// </summary>
+        private bool TryGetUserId(out int userId)
+        {
+            var claimValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(claimValue, out userId);
         }
     }
 }
